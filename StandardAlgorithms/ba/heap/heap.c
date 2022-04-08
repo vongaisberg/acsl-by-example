@@ -109,11 +109,12 @@ bool is_heap(const value_type *a, size_type n)
    requires nonempty:   0 < n;
    requires valid:      \valid(a + (0..n-1));
    requires heap:       Heap(a, n-1);
+   requires n2 >= n;
    assigns              a[0..n-1];
    ensures  heap:       Heap(a, n);
-   ensures  reorder:    MultisetReorder{Pre,Post}(a, n);
+   ensures MultisetReorder{Pre, Post}(a, n2);
 */
-void push_heap(value_type *a, size_type n) // Everything is a heap, except for the very last element
+void push_heap(value_type *a, size_type n) /*@ ghost(size_type n2) */ // Everything is a heap, except for the very last element
 {
   if (n <= 1)
   {
@@ -156,7 +157,7 @@ void push_heap(value_type *a, size_type n) // Everything is a heap, except for t
       loop invariant Unchanged{Pre, Here}(a, child);
 
       loop invariant Heap(a, n);
-
+      loop invariant Unchanged{Pre, Here}(a, n, n2);
       loop assigns child, parent, a[0..n-1];
       loop variant child;
     */
@@ -207,6 +208,9 @@ void push_heap(value_type *a, size_type n) // Everything is a heap, except for t
     //@ assert HeapCompatible(a, n, child, temp);
     //@ assert Heap(a, n);
   }
+
+  //@ assert  MultisetReorder{Pre, Here}(a, n);
+  //@ assert Unchanged{Pre, Here}(a, n, n2);
 }
 
 /*@
@@ -291,7 +295,7 @@ void heapify(value_type *a, size_type n) /*@ ghost(size_type n2) */
   */
   for (size_type i = 1u; i < n; i++)
   {
-    push_heap(a, i + 1u);
+    push_heap(a, i + 1u) /*@ ghost(n) */;
   }
 }
 /*@
@@ -320,7 +324,8 @@ void sort(value_type *a, size_type n)
     loop invariant MultisetReorder{Pre, Here}(a, n);
     loop invariant WeaklyIncreasing(a, i, n);
 
-    loop invariant LowerBound(a, i, n, a[i-1]);
+    loop invariant LowerBound(a, i, n, a[i]);
+    loop invariant LowerBound(a, i, n, a[0]);
 
   loop assigns i, a[0..n-1];
   loop variant i;
@@ -331,6 +336,11 @@ void sort(value_type *a, size_type n)
 
     if (a[0] == a[i - 1])
     {
+
+      //@ assert Heap(a, i-1);
+      //@ assert UpperBound(a, i, a[i-1]);
+      //@ assert MultisetReorder{Pre, Here}(a, n);
+      //@ assert LowerBound(a, i-1, n, a[i-1]);
       continue;
     }
 
@@ -357,14 +367,11 @@ void sort(value_type *a, size_type n)
     //@ assert Unchanged{LoopCurrent, Here}(a, i, n);
     //@ assert MaxElement(a, i, i-1);
 
-
-
     heapify(a, i - 1u) /*@ ghost(n) */;
     //@ assert Heap(a, i-1);
     //@ assert MaxElement(a, i, i-1);
     //@ assert MultisetReorder{Pre, Here}(a, n);
-    //@ assert LowerBound(a, i, n, a[i-1]);
-
+    //@ assert LowerBound(a, i-1, n, a[i-1]);
   }
 
   //@ assert Increasing(a, n);
