@@ -5,12 +5,15 @@
 #include "MultisetUpdate.acsl"
 #include "IncreasingLemmas.acsl"
 #include "ArrayBounds.acsl"
+#include "WeaklyIncreasingLemmas.acsl"
+#include "../../typedefs.h"
 
 /*@
    assigns           \nothing;
    ensures  parent:  \result == HeapParent(child);
  */
-size_type heap_parent(size_type child)
+size_type
+heap_parent(size_type child)
 {
   return (0u < child) ? (child - 1u) / 2u : 0u;
 }
@@ -84,7 +87,8 @@ is_heap_until(const value_type *a, size_type n)
     }
 
     if ((child % 2u) == 0u)
-    { // right child
+    {
+      // right child
       ++parent;
     }
   }
@@ -112,7 +116,9 @@ bool is_heap(const value_type *a, size_type n)
 void push_heap(value_type *a, size_type n) // Everything is a heap, except for the very last element
 {
   if (n <= 1)
+  {
     return;
+  }
 
   size_type child = n - 1; // last element
   size_type parent = heap_parent(child);
@@ -220,7 +226,9 @@ void pop_head(value_type *a, size_type n) // Move the head to the back and fix t
 
 {
   if (n == 1 || a[n - 1] == a[0])
+  {
     return;
+  }
 
   size_type parent = 0u;
   size_type child = heap_child(a, n - 1u, parent); // biggest child
@@ -237,7 +245,8 @@ void pop_head(value_type *a, size_type n) // Move the head to the back and fix t
   //@ assert Heap(a, n-1);
 
   while (temp < a[child] && child < n - 1u)
-  { // while the perfect spot was not found and the end of the array was not reached
+  {
+    // while the perfect spot was not found and the end of the array was not reached
 
     // pull the child up
     a[parent] = a[child];
@@ -267,7 +276,9 @@ void heapify(value_type *a, size_type n) /*@ ghost(size_type n2) */
 
 {
   if (n <= 1)
+  {
     return;
+  }
 
   /*@
   loop invariant Heap(a, i);
@@ -294,7 +305,9 @@ ensures Increasing(a, n);
 void sort(value_type *a, size_type n)
 {
   if (n == 1)
+  {
     return;
+  }
 
   heapify(a, n) /*@ ghost(n) */;
 
@@ -307,7 +320,7 @@ void sort(value_type *a, size_type n)
     loop invariant MultisetReorder{Pre, Here}(a, n);
     loop invariant WeaklyIncreasing(a, i, n);
 
-    loop invariant LowerBound(a, i, n, a[0]);
+    loop invariant LowerBound(a, i, n, a[i-1]);
 
   loop assigns i, a[0..n-1];
   loop variant i;
@@ -317,7 +330,9 @@ void sort(value_type *a, size_type n)
   {
 
     if (a[0] == a[i - 1])
+    {
       continue;
+    }
 
     //@ assert Heap(a, i);
     //@ assert MaxElement(a, i, 0);
@@ -342,16 +357,15 @@ void sort(value_type *a, size_type n)
     //@ assert Unchanged{LoopCurrent, Here}(a, i, n);
     //@ assert MaxElement(a, i, i-1);
 
-    //@ assert MultisetReorder{Pre, Here}(a, n);
 
-    //@ assert LowerBound(a, i, n, a[i-1]);
-
-    //@ ghost L2: ;
 
     heapify(a, i - 1u) /*@ ghost(n) */;
-    //@ assert Unchanged{L2, Here}(a, i-1, n);
-
+    //@ assert Heap(a, i-1);
+    //@ assert MaxElement(a, i, i-1);
     //@ assert MultisetReorder{Pre, Here}(a, n);
     //@ assert LowerBound(a, i, n, a[i-1]);
+
   }
+
+  //@ assert Increasing(a, n);
 }
